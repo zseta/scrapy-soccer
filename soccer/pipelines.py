@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import MySQLdb
+#import MySQLdb
 from datetime import datetime
 from scrapy.exceptions import DropItem, NotConfigured
 

@@ -24,7 +24,7 @@ ROBOTSTXT_OBEY = True
 # To use database pipeline set host, user+pass in the pipeline and uncomment it below
 ITEM_PIPELINES = {
     'soccer.pipelines.CleaningPipeline': 300,
-    'soccer.pipelines.DatabasePipeline': 301
+    #'soccer.pipelines.DatabasePipeline': 301
 }
 
 # Http-caching enabled so scrapy requests the website only once in 24 hours

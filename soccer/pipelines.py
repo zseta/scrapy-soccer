@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-#import MySQLdb
+import MySQLdb
 from datetime import datetime
-from scrapy.exceptions import DropItem
+from scrapy.exceptions import DropItem, NotConfigured
 
 
 class CleaningPipeline(object):
@@ -17,9 +17,9 @@ class CleaningPipeline(object):
             item["home_team"] = self.clean_home_team(item["home_team"])
             item["away_team"] = self.clean_away_team(item["away_team"])
             item["home_goals1"] = self.clean_home_goals1(item["home_goals1"])
-            item["home_goals2"] = self.clean_home_goals2(item["home_goals2"], item["home_goals1"])
+            item["home_goals2"] = self.clean_home_goals2(item)
             item["away_goals1"] = self.clean_away_goals1(item["away_goals1"])
-            item["away_goals2"] = self.clean_away_goals2(item["away_goals2"], item["away_goals1"])
+            item["away_goals2"] = self.clean_away_goals2(item)
             return item
 
     def clean_league(self, value):
@@ -44,25 +44,40 @@ class CleaningPipeline(object):
         goals = value[value.index("(")+1:value.index(")")]
         return int(goals[goals.index(":") + 1:])
 
-    def clean_home_goals2(self, value, home_goals1):
+    def clean_home_goals2(self, item):
+        home_goals1 = item["home_goals1"]
+        value = item["home_goals2"]
         result = value[:value.index("(")]
         home_goals_full = int(result[:result.index(":")].strip())
-        return home_goals_full-home_goals1
+        return home_goals_full - home_goals1
 
-    def clean_away_goals2(self, value, away_goals1):
+    def clean_away_goals2(self, item):
+        value = item["away_goals2"]
+        away_goals1 = item["away_goals1"]
         result = value[:value.index("(")]
-        away_goals_full = int(result[result.index(":")+1:].strip())
+        away_goals_full = int(result[result.index(":") + 1:].strip())
         return away_goals_full - away_goals1
 
 
 class DatabasePipeline(object):
 
-    def __init__(self):
-        self.conn = MySQLdb.connect(db='soccer_db',
-                               user='soccer_user', passwd='soccer_pass',
-                               host='0.0.0.0',
+    def __init__(self, db, user, passwd, host):
+        self.conn = MySQLdb.connect(db=db,
+                               user=user, passwd=passwd,
+                               host=host,
                                charset='utf8', use_unicode=True)
         self.cursor = self.conn.cursor()
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        db_settings = crawler.settings.getdict("DB_SETTINGS")
+        if not db_settings:
+            raise NotConfigured
+        db = db_settings['db']
+        user = db_settings['user']
+        passwd = db_settings['passwd']
+        host = db_settings['host']
+        return cls(db, user, passwd, host)
 
     def process_item(self, item, spider):
         query = ("INSERT INTO matches (league, country, played, home_team, away_team, home_goals1, "
